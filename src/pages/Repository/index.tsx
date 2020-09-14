@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouteMatch, Link } from 'react-router-dom';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import api from '../../services/api';
 
 import { Header, RepositoryInfo, Issues } from './styles';
 
@@ -10,8 +11,42 @@ interface RepositoryParams {
     repository: string;
 }
 
+interface Repository {
+    full_name: string;
+    description: string;
+    stargazers_count: number;
+    forks_count: number;
+    open_issues_count: number;
+    owner: {
+        login: string;
+        avatar_url: string;
+    };
+}
+
+interface Issue {
+    id: number;
+    title: string;
+    html_url: string;
+    user: {
+        login: string;
+    }
+}
+
 const Repository: React.FC = () => {
+    const [repository, setRepository] = useState<Repository | null>(null);
+    const [issues, setIssues] = useState<Issue[]>([]);
+
     const { params } = useRouteMatch<RepositoryParams>();
+
+    useEffect(() => {
+        api.get(`repos/${params.repository}`).then(response => {
+            setRepository(response.data);
+        });
+
+        api.get(`repos/${params.repository}/issues`).then(response => {
+            setIssues(response.data);
+        });
+    }, [params.repository]);
 
     return (
         <>
@@ -23,39 +58,43 @@ const Repository: React.FC = () => {
                 </Link>
             </Header>
 
-            <RepositoryInfo>
+            {repository && (
+                <RepositoryInfo>
                 <header>
-                    <img src="https://camo.githubusercontent.com/e8ab4d776d1a3f635b04b0abcae9debbebd33a16/68747470733a2f2f73332d73612d656173742d312e616d617a6f6e6177732e636f6d2f726f636b6574736561742d63646e2f726f636b6574736561745f6c6f676f5f726f78612e706e67" alt="Rocketseat" />
+                    <img src={repository.owner.avatar_url} alt={repository.owner.login} />
                     <div>
-                        <strong>rocketseat/unform</strong>
-                        <p>descrição do repositório</p>
+                        <strong>{repository.full_name}</strong>
+                        <p>{repository.description}</p>
                     </div>
                 </header>
                 <ul>
                     <li>
-                        <strong>1707</strong>
+                        <strong>{repository.stargazers_count}</strong>
                         <span>Stars</span>
                     </li>
                     <li>
-                        <strong>46</strong>
+                        <strong>{repository.forks_count}</strong>
                         <span>Forks</span>
                     </li>
                     <li>
-                        <strong>55</strong>
+                        <strong>{repository.open_issues_count}</strong>
                         <span>Issues abertas</span>
                     </li>
                 </ul>
             </RepositoryInfo>
+            )}
 
             <Issues>
-                <Link to="dasdasdas">
+                {issues.map(issue => (
+                <a key={issue.id} href={issue.html_url}>
                         <div>
-                            <strong>fasfasdasd</strong>
-                            <p>asdasdasd</p>
+                            <strong>{issue.title}</strong>
+                            <p>{issue.user.login}</p>
                         </div>
 
                         <FiChevronRight size={20} />
-                    </Link>))
+                    </a>
+                    ))}
             </Issues>
         </>
     )
